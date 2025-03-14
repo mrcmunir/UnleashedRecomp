@@ -61,7 +61,6 @@ namespace plume {
     static const std::unordered_set<std::string> RequiredDeviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME,
-        VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
         VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
 #   ifdef VULKAN_OBJECT_NAMES_ENABLED
@@ -79,6 +78,8 @@ namespace plume {
         VK_KHR_PRESENT_ID_EXTENSION_NAME,
         VK_KHR_PRESENT_WAIT_EXTENSION_NAME,
         VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME,
+        VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
+        
     };
 
     // Common functions.
@@ -3679,11 +3680,21 @@ namespace plume {
             presentWaitFeatures.pNext = featuresChain;
             featuresChain = &presentWaitFeatures;
         }
+        //check Robustness2 support
+        bool isRobustness2Supported = false;
+        for (const auto& extension : supportedOptionalExtensions) {
+            if (extension == VK_EXT_ROBUSTNESS_2_EXTENSION_NAME) {
+                isRobustness2Supported = true;
+                break;
+            }
+        }
 
         VkPhysicalDeviceRobustness2FeaturesEXT robustnessFeatures = {};
+        if (isRobustness2Supported) {
         robustnessFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
         robustnessFeatures.pNext = featuresChain;
         featuresChain = &robustnessFeatures;
+        }
 
         VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {};
         bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
@@ -3748,7 +3759,7 @@ namespace plume {
             createDeviceChain = &presentWaitFeatures;
         }
 
-        const bool nullDescriptor = robustnessFeatures.nullDescriptor;
+        const bool nullDescriptor = isRobustness2Supported && robustnessFeatures.nullDescriptor;
         if (nullDescriptor) {
             robustnessFeatures.pNext = createDeviceChain;
             createDeviceChain = &robustnessFeatures;
